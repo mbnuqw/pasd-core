@@ -1,0 +1,6 @@
+target
+**/*.rs.bk
+Cargo.lock
+ndk
+.vscode
+.cargo
