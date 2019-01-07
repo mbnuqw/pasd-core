@@ -89,7 +89,8 @@ fn main() -> Result<(), Error> {
     )?;
 
     // Listen clients (blocked)
-    match server.listen("/tmp/pasd.sock") {
+    let sock_path = config.ipc_socket_path.unwrap_or("/tmp/pasd.sock".to_string());
+    match server.listen(&sock_path) {
         Ok(_) => (),
         Err(err) => println!("Cannot listen: {:?}", err),
     };

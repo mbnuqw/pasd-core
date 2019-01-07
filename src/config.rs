@@ -12,6 +12,7 @@ use toml;
 pub struct Config {
     pub db_path: Option<String>,
     pub db_key: Option<String>,
+    pub ipc_socket_path: Option<String>,
 }
 
 impl Config {
@@ -23,7 +24,7 @@ impl Config {
         // Read it
         match Config::read(dir_path.to_owned(), "config.toml") {
             Ok(conf) => conf,
-            Err(_) => Config { db_path: None, db_key: None },
+            Err(_) => Config { db_path: None, db_key: None, ipc_socket_path: None },
         }
     }
 
@@ -89,4 +90,7 @@ const DEFAULT: &'static str = "\
 
 # Outer encryption key. (store it somewhere else)
 # db_key = \"outer encryption key\"
+
+# Path to ipc socket.
+# ipc_socket_path = \"/tmp/pasd.sock\"
 ";
