@@ -16,6 +16,8 @@ use key::{Key, KeyInfo, KeyType, Passwords};
 use secret::{AddSecretArgs, Secret, SecretInfo, SecretType};
 use utils::{self, Aes256Cbc};
 
+static DB_VERSION: u8 = 0x00;
+
 static OUTER_SCRYPT_LOG2_N: u8 = 15;
 static OUTER_SCRYPT_R: u32 = 16;
 static INNER_SCRYPT_LOG2_N: u8 = 15;
@@ -53,8 +55,17 @@ impl DB {
             }
         }
 
-        // Read file
+        // Read and validate file
+        let mut sig = [0u8; 3];
         let mut data = Vec::with_capacity(1024);
+        db_file.read(&mut sig)?;
+        if sig[0] != 0x00 || sig[1] != sig[2] {
+            return Err(Error::InvalidDBFormat);
+        }
+        if sig[1] != DB_VERSION {
+            // Handle format change
+            return Err(Error::InvalidDBFormat);
+        }
         db_file.read_to_end(&mut data)?;
 
         // Decrypt
@@ -104,7 +115,9 @@ impl DB {
         let encrypted = utils::encrypt(data, cipher)?;
 
         // Reset and write new content
+        let sig: [u8; 3] = [0x00, DB_VERSION, DB_VERSION];
         db_file.set_len(0)?;
+        db_file.write_all(&sig)?;
         db_file.write_all(&encrypted)?;
 
         Ok(())
