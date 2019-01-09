@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::fs::{self, File};
+use std::os::unix::fs::OpenOptionsExt;
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, prelude::*};
 use std::path::Path;
 
@@ -31,6 +32,8 @@ pub struct DB {
     path: Option<String>,
     #[serde(skip)]
     key: Option<String>,
+    #[serde(skip)]
+    backups_path: Option<String>,
     pub keys: Vec<Key>,
     pub secrets: Vec<Secret>,
 }
@@ -41,6 +44,7 @@ impl DB {
         DB {
             path: conf.db_path.clone(),
             key: conf.db_key.clone(),
+            backups_path: conf.backups_path.clone(),
             keys: vec![],
             secrets: vec![],
         }
@@ -119,6 +123,20 @@ impl DB {
         db_file.set_len(0)?;
         db_file.write_all(&sig)?;
         db_file.write_all(&encrypted)?;
+
+        // Backup
+        if let Some(ref b) = self.backups_path {
+            let backup_name = "pasd_backup";
+            let backup_dir = Path::new(b);
+            let mut backup_file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .mode(0o666)
+                .open(backup_dir.join(backup_name))?;
+            backup_file.set_len(0)?;
+            backup_file.write_all(&sig)?;
+            backup_file.write_all(&encrypted)?;
+        }
 
         Ok(())
     }

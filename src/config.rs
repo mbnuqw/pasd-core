@@ -1,9 +1,9 @@
 use errors::Error;
 use serde::de::DeserializeOwned;
-use std::os::unix::fs::OpenOptionsExt;
 use std::env;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, prelude::*};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use toml;
 
@@ -13,6 +13,7 @@ pub struct Config {
     pub db_path: Option<String>,
     pub db_key: Option<String>,
     pub ipc_socket_path: Option<String>,
+    pub backups_path: Option<String>,
 }
 
 impl Config {
@@ -24,7 +25,12 @@ impl Config {
         // Read it
         match Config::read(dir_path.to_owned(), "config.toml") {
             Ok(conf) => conf,
-            Err(_) => Config { db_path: None, db_key: None, ipc_socket_path: None },
+            Err(_) => Config {
+                db_path: None,
+                db_key: None,
+                ipc_socket_path: None,
+                backups_path: None,
+            },
         }
     }
 
@@ -32,7 +38,7 @@ impl Config {
     fn reveal_dir_path(name: &str) -> PathBuf {
         let home_path_str = env::var("HOME").expect("I thought you have HOME var...");
         if home_path_str == "/root" {
-            return Path::new("/etc/pasd").to_path_buf()
+            return Path::new("/etc/pasd").to_path_buf();
         }
         let home_path = Path::new(&home_path_str);
         let conf_path = match env::var("XDG_CONFIG_HOME") {
@@ -93,4 +99,7 @@ const DEFAULT: &'static str = "\
 
 # Path to ipc socket.
 # ipc_socket_path = \"/tmp/pasd.sock\"
+
+# Path to dir where will be stored backups.
+# backups_path = \"/path/to/backups/\"
 ";
