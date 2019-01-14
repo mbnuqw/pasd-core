@@ -6,7 +6,7 @@ use std::path::Path;
 
 use block_cipher_trait::generic_array::typenum::consts::U16;
 use block_cipher_trait::generic_array::GenericArray;
-use block_modes::BlockModeIv;
+use block_modes::BlockMode;
 use msgpack;
 use scrypt::{scrypt, ScryptParams};
 use sha2::{Digest, Sha256};
@@ -52,6 +52,7 @@ impl DB {
 
     /// Load secure data
     pub fn load(&mut self) -> Result<(), Error> {
+        println!(" → Loading DB");
         let mut db_file = self.open("r")?;
         if let Ok(meta) = db_file.metadata() {
             if meta.len() == 0 {
@@ -71,11 +72,12 @@ impl DB {
             return Err(Error::InvalidDBFormat);
         }
         db_file.read_to_end(&mut data)?;
+        println!(" →   File was read and verifyed, len: {:?}, sig: {:?}", data.len(), sig);
 
         // Decrypt
         let outer_key = self.get_outer_key()?;
         let outer_iv = self.get_outer_iv()?;
-        let cipher = match Aes256Cbc::new_varkey(&outer_key, &outer_iv) {
+        let cipher = match Aes256Cbc::new_var(&outer_key, &outer_iv) {
             Ok(c) => c,
             Err(_) => return Err(Error::IncorrectOuterKey),
         };
@@ -84,6 +86,7 @@ impl DB {
         let db: DB = msgpack::from_slice(&decrypted)?;
         self.keys = db.keys;
         self.secrets = db.secrets;
+        println!(" →   DB successfully loaded");
 
         Ok(())
     }
@@ -98,31 +101,38 @@ impl DB {
 
     /// Unload secure data
     pub fn unload(&mut self) {
+        println!(" → Unloading DB");
         self.keys.clear();
         self.secrets.clear();
+        println!(" →   DB unloaded\n");
     }
 
     /// Save db
     pub fn save(&mut self) -> Result<(), Error> {
+        println!(" → Saving DB");
+        println!(" {:?}", self);
         let mut db_file = self.open("rw")?;
 
-        // Serialize DB and get len
+        // Serialize DB
         let data = msgpack::to_vec(&self)?;
+        println!(" →   DB serialized, len: {:?}", data.len());
 
         // Encrypt
         let outer_key = self.get_outer_key()?;
         let outer_iv = self.get_outer_iv()?;
-        let cipher = match Aes256Cbc::new_varkey(&outer_key, &outer_iv) {
+        let cipher = match Aes256Cbc::new_var(&outer_key, &outer_iv) {
             Ok(c) => c,
             Err(_) => return Err(Error::IncorrectOuterKey),
         };
         let encrypted = utils::encrypt(data, cipher)?;
+        println!(" →   DB encrypted, len: {:?}", encrypted.len());
 
         // Reset and write new content
         let sig: [u8; 3] = [0x00, DB_VERSION, DB_VERSION];
         db_file.set_len(0)?;
         db_file.write_all(&sig)?;
         db_file.write_all(&encrypted)?;
+        println!(" →   DB writed with sig: {:?}", sig);
 
         // Backup
         if let Some(ref b) = self.backups_path {
@@ -532,7 +542,7 @@ impl DB {
         }
 
         let (key, iv) = DB::get_inner_key_iv(group_secret)?;
-        Ok(Aes256Cbc::new_varkey(&key, &iv)?)
+        Ok(Aes256Cbc::new_var(&key, &iv)?)
     }
 
     /// Decrypt all secrets and return values

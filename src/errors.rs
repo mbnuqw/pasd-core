@@ -17,6 +17,7 @@ pub enum Error {
     SCRYPTLEN(InvalidOutputLen),
     SCRYPTPARAM(InvalidParams),
     KEYLEN(block_cipher_trait::InvalidKeyLength),
+    KEYIVLEN(block_modes::InvalidKeyIvLength),
     CON(con::Error),
     Other(&'static str),
     Internal,
@@ -42,6 +43,7 @@ impl Error {
             Error::SCRYPTLEN(_) => "scrypt-len",
             Error::SCRYPTPARAM(_) => "scrypt-param",
             Error::KEYLEN(_) => "key-len",
+            Error::KEYIVLEN(_) => "key-iv-len",
             Error::CON(_) => "con",
             Error::Other(msg) => msg,
             Error::Internal => "internal",
@@ -74,6 +76,7 @@ impl Error {
             Error::SCRYPTLEN(_) => "scrypt-len".to_string(),
             Error::SCRYPTPARAM(_) => "scrypt-param".to_string(),
             Error::KEYLEN(_) => "key-len".to_string(),
+            Error::KEYIVLEN(_) => "key-iv-len".to_string(),
             Error::CON(_) => "con".to_string(),
             Error::Other(msg) => "other-".to_string() + msg,
             Error::Internal => "internal".to_string(),
@@ -101,6 +104,7 @@ impl fmt::Display for Error {
             Error::SCRYPTLEN(err) => err.fmt(f),
             Error::SCRYPTPARAM(err) => err.fmt(f),
             Error::KEYLEN(err) => err.fmt(f),
+            Error::KEYIVLEN(_) => write!(f, "Crypto error: KeyIv length"),
             Error::CON(err) => err.fmt(f),
             Error::Other(_) => write!(f, "Some other error"),
             Error::Internal => write!(f, "Internal error"),
@@ -156,6 +160,12 @@ impl From<block_modes::BlockModeError> for Error {
 impl From<block_cipher_trait::InvalidKeyLength> for Error {
     fn from(error: block_cipher_trait::InvalidKeyLength) -> Self {
         Error::KEYLEN(error)
+    }
+}
+
+impl From<block_modes::InvalidKeyIvLength> for Error {
+    fn from(error: block_modes::InvalidKeyIvLength) -> Self {
+        Error::KEYIVLEN(error)
     }
 }
 

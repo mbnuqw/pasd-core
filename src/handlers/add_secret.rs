@@ -47,6 +47,7 @@ pub fn add_secret_handler<T>(
         Ok(k) => k,
         Err(e) => return AddSecretAns::json(Some(Error::JSON(e))),
     };
+    println!(" → Add secret args: {:?}", args);
     let passwords = args.passwords.clone();
 
     let mut db = match shared_db.lock() {

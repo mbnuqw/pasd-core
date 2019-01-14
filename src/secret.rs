@@ -212,7 +212,7 @@ impl<'a> From<&'a Secret> for SecretInfo {
 mod tests {
     use std::collections::HashMap;
     use block_cipher_trait::generic_array::GenericArray;
-    use block_modes::BlockModeIv;
+    use block_modes::BlockMode;
     use secret::*;
 
     #[test]
@@ -220,11 +220,11 @@ mod tests {
         // define two ciphers
         let key_1 = [1u8; 32];
         let iv_1 = *GenericArray::from_slice(&[1u8; 16]);
-        let cipher_1 = Aes256Cbc::new_varkey(&key_1, &iv_1).unwrap();
+        let cipher_1 = Aes256Cbc::new_var(&key_1, &iv_1).unwrap();
 
         let key_2 = [2u8; 32];
         let iv_2 = *GenericArray::from_slice(&[2u8; 16]);
-        let cipher_2 = Aes256Cbc::new_varkey(&key_2, &iv_2).unwrap();
+        let cipher_2 = Aes256Cbc::new_var(&key_2, &iv_2).unwrap();
 
         let mut ciphers = HashMap::with_capacity(2);
         ciphers.insert("Uno".to_string(), cipher_1);
@@ -249,7 +249,7 @@ mod tests {
 
         let key_1a = [1u8; 32];
         let iv_1a = *GenericArray::from_slice(&[1u8; 16]);
-        let cipher_1a = Aes256Cbc::new_varkey(&key_1a, &iv_1a).unwrap();
+        let cipher_1a = Aes256Cbc::new_var(&key_1a, &iv_1a).unwrap();
         let value = secret.decrypt("Uno".to_string(), cipher_1a).unwrap();
         assert_eq!(value, Vec::from("This is value"));
     }
