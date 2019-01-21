@@ -54,7 +54,6 @@ pub fn remove_secret_handler<T>(
         Ok(k) => k,
         Err(e) => return RemoveSecretAns::json(Some(Error::JSON(e))),
     };
-    println!(" → Remove secret args: {:?}", args);
     let passwords = args.passwords.clone();
 
     // Remove key

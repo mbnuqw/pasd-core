@@ -15,7 +15,7 @@ use config::Config;
 use errors::Error;
 use key::{Key, KeyInfo, KeyType, Passwords};
 use secret::{AddSecretArgs, Secret, SecretInfo, SecretType};
-use utils::{self, Aes256Cbc};
+use utils::Aes256Cbc;
 
 static DB_VERSION: u8 = 0x00;
 
@@ -52,7 +52,6 @@ impl DB {
 
     /// Load secure data
     pub fn load(&mut self) -> Result<(), Error> {
-        println!(" → Loading DB");
         let mut db_file = self.open("r")?;
         if let Ok(meta) = db_file.metadata() {
             if meta.len() == 0 {
@@ -72,7 +71,6 @@ impl DB {
             return Err(Error::InvalidDBFormat);
         }
         db_file.read_to_end(&mut data)?;
-        println!(" →   File was read and verifyed, len: {:?}, sig: {:?}", data.len(), sig);
 
         // Decrypt
         let outer_key = self.get_outer_key()?;
@@ -81,12 +79,11 @@ impl DB {
             Ok(c) => c,
             Err(_) => return Err(Error::IncorrectOuterKey),
         };
-        let decrypted = utils::decrypt(data, cipher)?;
+        let decrypted = cipher.decrypt_vec(&data)?;
 
         let db: DB = msgpack::from_slice(&decrypted)?;
         self.keys = db.keys;
         self.secrets = db.secrets;
-        println!(" →   DB successfully loaded");
 
         Ok(())
     }
@@ -101,21 +98,16 @@ impl DB {
 
     /// Unload secure data
     pub fn unload(&mut self) {
-        println!(" → Unloading DB");
         self.keys.clear();
         self.secrets.clear();
-        println!(" →   DB unloaded\n");
     }
 
     /// Save db
     pub fn save(&mut self) -> Result<(), Error> {
-        println!(" → Saving DB");
-        println!(" {:?}", self);
         let mut db_file = self.open("rw")?;
 
         // Serialize DB
         let data = msgpack::to_vec(&self)?;
-        println!(" →   DB serialized, len: {:?}", data.len());
 
         // Encrypt
         let outer_key = self.get_outer_key()?;
@@ -124,15 +116,13 @@ impl DB {
             Ok(c) => c,
             Err(_) => return Err(Error::IncorrectOuterKey),
         };
-        let encrypted = utils::encrypt(data, cipher)?;
-        println!(" →   DB encrypted, len: {:?}", encrypted.len());
+        let encrypted = cipher.encrypt_vec(&data);
 
         // Reset and write new content
         let sig: [u8; 3] = [0x00, DB_VERSION, DB_VERSION];
         db_file.set_len(0)?;
         db_file.write_all(&sig)?;
         db_file.write_all(&encrypted)?;
-        println!(" →   DB writed with sig: {:?}", sig);
 
         // Backup
         if let Some(ref b) = self.backups_path {
@@ -468,7 +458,6 @@ impl DB {
         let mut derived_key = [0u8; 32];
         let scrypt_params = ScryptParams::new(OUTER_SCRYPT_LOG2_N, OUTER_SCRYPT_R, 1)?;
         scrypt(&key, &hashed_key, &scrypt_params, &mut derived_key)?;
-        // pbkdf2::<Hmac<Sha256>>(&key, &hashed_key, OUTER_C, &mut derived_key);
 
         Ok(derived_key)
     }
@@ -485,7 +474,6 @@ impl DB {
         let mut key = [0u8; 32];
         let scrypt_params = ScryptParams::new(INNER_SCRYPT_LOG2_N, INNER_SCRYPT_R, 1)?;
         scrypt(&group_key, &h_salt[..4], &scrypt_params, &mut key)?;
-        // pbkdf2::<Hmac<Sha256>>(&group_key, &h_salt[..4], INNER_C, &mut key);
 
         // IV
         let iv = *GenericArray::from_slice(h_iv);
@@ -611,5 +599,25 @@ impl DB {
         }
 
         groups
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use config;
+    use db;
+
+    #[test]
+    fn new() {
+        let conf = config::Config {
+            db_path: Some("aaa".to_string()),
+            db_key: Some("bbb".to_string()),
+            ipc_socket_path: Some("ccc".to_string()),
+            backups_path: Some("ddd".to_string()),
+        };
+        let new_db = db::DB::new(&conf);
+
+        assert_eq!(new_db.path, Some("aaa".to_string()));
+        assert_eq!(new_db.backups_path, Some("ddd".to_string()));
     }
 }

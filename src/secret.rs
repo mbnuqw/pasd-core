@@ -3,10 +3,11 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use chrono::Local;
+use block_modes::BlockMode;
 
 use errors::Error;
 use key::Passwords;
-use utils::{self, Aes256Cbc};
+use utils::Aes256Cbc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -83,7 +84,7 @@ impl Secret {
         for (g, cipher) in ciphers {
             values.push(SecretValue {
                 group: g.clone(),
-                value: utils::encrypt(value.clone(), cipher)?,
+                value: cipher.encrypt_vec(&value.clone()),
             });
         }
 
@@ -122,7 +123,7 @@ impl Secret {
             for (g, cipher) in ciphers {
                 values.push(SecretValue {
                     group: g.clone(),
-                    value: utils::encrypt(value.clone(), cipher)?,
+                    value: cipher.encrypt_vec(&value.clone()),
                 });
             }
         } else {
@@ -149,8 +150,7 @@ impl Secret {
             None => return Err(Error::InvalidKey),
         };
 
-        let dec = utils::decrypt(value.value.clone(), cipher)?;
-        Ok(dec)
+        Ok(cipher.decrypt_vec(&value.value.clone())?)
     }
 
     /// Encrypt new secret value
@@ -169,7 +169,7 @@ impl Secret {
         for (g, cipher) in ciphers {
             values.push(SecretValue {
                 group: g.clone(),
-                value: utils::encrypt(value.clone(), cipher)?,
+                value: cipher.encrypt_vec(&value.clone()),
             });
         }
 
@@ -205,13 +205,9 @@ impl<'a> From<&'a Secret> for SecretInfo {
     }
 }
 
-// -----------------------------
-// --- --- --- Tests --- --- ---
-// -----------------------------
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use block_cipher_trait::generic_array::GenericArray;
     use block_modes::BlockMode;
     use secret::*;
 
@@ -219,12 +215,10 @@ mod tests {
     fn creating_new_secret() {
         // define two ciphers
         let key_1 = [1u8; 32];
-        let iv_1 = *GenericArray::from_slice(&[1u8; 16]);
-        let cipher_1 = Aes256Cbc::new_var(&key_1, &iv_1).unwrap();
+        let cipher_1 = Aes256Cbc::new_var(&key_1, &[1u8; 16]).unwrap();
 
         let key_2 = [2u8; 32];
-        let iv_2 = *GenericArray::from_slice(&[2u8; 16]);
-        let cipher_2 = Aes256Cbc::new_var(&key_2, &iv_2).unwrap();
+        let cipher_2 = Aes256Cbc::new_var(&key_2, &[2u8; 16]).unwrap();
 
         let mut ciphers = HashMap::with_capacity(2);
         ciphers.insert("Uno".to_string(), cipher_1);
@@ -248,11 +242,8 @@ mod tests {
         assert_eq!(secret.values.len(), 2);
 
         let key_1a = [1u8; 32];
-        let iv_1a = *GenericArray::from_slice(&[1u8; 16]);
-        let cipher_1a = Aes256Cbc::new_var(&key_1a, &iv_1a).unwrap();
+        let cipher_1a = Aes256Cbc::new_var(&key_1a, &[1u8; 16]).unwrap();
         let value = secret.decrypt("Uno".to_string(), cipher_1a).unwrap();
         assert_eq!(value, Vec::from("This is value"));
     }
-
-    // todo...other fns
 }
