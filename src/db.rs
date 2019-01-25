@@ -19,10 +19,15 @@ use utils::Aes256Cbc;
 
 static DB_VERSION: u8 = 0x00;
 
-static OUTER_SCRYPT_LOG2_N: u8 = 15;
-static OUTER_SCRYPT_R: u32 = 16;
-static INNER_SCRYPT_LOG2_N: u8 = 15;
-static INNER_SCRYPT_R: u32 = 16;
+// static OUTER_SCRYPT_LOG2_N: u8 = 15;
+// static OUTER_SCRYPT_R: u32 = 16;
+// static INNER_SCRYPT_LOG2_N: u8 = 15;
+// static INNER_SCRYPT_R: u32 = 16;
+
+static OUTER_SCRYPT_LOG2_N: u8 = 1;
+static OUTER_SCRYPT_R: u32 = 1;
+static INNER_SCRYPT_LOG2_N: u8 = 1;
+static INNER_SCRYPT_R: u32 = 1;
 
 /// Central struct that keeps secrets along with
 /// some additional info.

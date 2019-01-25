@@ -13,6 +13,10 @@ static ALPH: [char; 64] = [
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4',
     '5', '6', '7', '8', '9', '-', '_',
 ];
+static ALPH_32: [char; 32] = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
+    'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+];
 
 /// Generate simple uid string
 pub fn uid() -> String {
@@ -37,6 +41,19 @@ pub fn uid() -> String {
     for _ in 0..5 {
         output.push(ALPH[(ns & 63) as usize]);
         ns >>= 6;
+    }
+
+    return output;
+}
+
+/// Generate simple string-id [0-9a-z]
+pub fn str_id_32(len: usize) -> String {
+    let mut output = String::with_capacity(len);
+
+    let mut rng = OsRng::new().unwrap();
+    for _ in 0..len {
+        let rd: u8 = rng.gen();
+        output.push(ALPH_32[(rd & 31) as usize]);
     }
 
     return output;

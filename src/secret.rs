@@ -7,7 +7,7 @@ use block_modes::BlockMode;
 
 use errors::Error;
 use key::Passwords;
-use utils::Aes256Cbc;
+use utils::{self, Aes256Cbc};
 
 #[derive(Debug, Copy, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -38,6 +38,7 @@ pub struct AddSecretArgs {
 /// Secret info for lists output
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SecretInfo {
+    pub id: String,
     #[serde(rename = "type")]
     pub secret_type: SecretType,
     pub name: String,
@@ -49,6 +50,7 @@ pub struct SecretInfo {
 /// Pasd secret struct
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Secret {
+    pub id: String,
     #[serde(rename = "type")]
     pub secret_type: SecretType,
     pub name: String,
@@ -89,6 +91,7 @@ impl Secret {
         }
 
         Ok(Secret {
+            id: utils::str_id_32(16),
             secret_type: secret_type,
             name: name,
             url: url,
@@ -131,6 +134,7 @@ impl Secret {
         }
 
         let secret = Secret {
+            id: utils::str_id_32(16),
             secret_type: args.secret_type,
             name: args.name,
             url: args.url,
@@ -196,6 +200,7 @@ impl Secret {
 impl<'a> From<&'a Secret> for SecretInfo {
     fn from(s: &Secret) -> Self {
         SecretInfo {
+            id: s.id.clone(),
             secret_type: s.secret_type.clone(),
             name: s.name.clone(),
             url: s.url.clone(),
