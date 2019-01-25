@@ -8,7 +8,7 @@ use key::Passwords;
 
 #[derive(Debug, Deserialize)]
 struct RemoveSecretArgs {
-    name: String,
+    query: Vec<String>,
     passwords: Passwords,
 }
 
@@ -61,7 +61,7 @@ pub fn remove_secret_handler<T>(
         Ok(db) => db,
         Err(_) => return RemoveSecretAns::json(Some(Error::Internal)),
     };
-    match db.rm_secret(&args.name, passwords) {
+    match db.rm_secret(args.query, passwords) {
         Ok(_) => (),
         Err(err) => return RemoveSecretAns::json(Some(err)),
     }

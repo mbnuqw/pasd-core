@@ -293,17 +293,11 @@ impl DB {
     }
 
     /// Remove secret
-    pub fn rm_secret(&mut self, secret_name: &str, passwords: Passwords) -> Result<(), Error> {
+    pub fn rm_secret(&mut self, query: Vec<String>, passwords: Passwords) -> Result<(), Error> {
         self.should_be_ready()?;
 
         // Load DB
         self.load()?;
-
-        // Check if secret with this name is existed
-        let secret_index = match self.secrets.iter().position(|k| k.name == secret_name) {
-            Some(i) => i,
-            None => return Err(Error::NotFound),
-        };
 
         // Validate all keys
         for key in self.keys.iter() {
@@ -311,6 +305,14 @@ impl DB {
                 return Err(Error::InvalidKey);
             }
         }
+
+        let secret_index = {
+            let secret = self.find_secret(query)?;
+            match self.secrets.iter().position(|s| s.id == secret.id) {
+                Some(i) => i,
+                None => return Err(Error::NotFound),
+            }
+        };
 
         // Remove secret and save
         self.secrets.remove(secret_index);
@@ -398,6 +400,11 @@ impl DB {
             // Check if all arguments matched
             args.iter().all(|arg| {
                 let norm_arg = arg.to_lowercase();
+
+                // ID
+                if secret.id.to_lowercase().find(&norm_arg).is_some() {
+                    return true;
+                }
 
                 // Name
                 if secret.name.to_lowercase().find(&norm_arg).is_some() {
